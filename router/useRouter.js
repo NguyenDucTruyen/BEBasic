@@ -6,7 +6,14 @@ var bodyParser = require('body-parser')
 router.use(bodyParser.urlencoded({ extended: false })) 		// parse application/x-www-form-urlencoded
 router.use(bodyParser.json())							// parse application/json
 
-
+function Validate(req,res,next){
+	if(typeof req.body.fullname === 'string' && req.body.gender !='True' && req.body.gender !='False' && req.body.age > 0){
+		next()
+	}
+	else{
+		res.status(204).send("Không thành công+")
+	}
+}
 
 let list=[
 	{
@@ -39,7 +46,7 @@ router.get('/:id',function (req,res){
 
 
 //Put methods
-router.put('/:id',(req,res)=>{
+router.put('/:id',Validate,(req,res)=>{
 	const id = parseInt(req.params.id)
 	const user = list.find(user => user.id === id)
 	if(!user){
@@ -54,7 +61,7 @@ router.put('/:id',(req,res)=>{
 })
 
 // Post methods
-	router.post('/',(req,res)=>{
+	router.post('/',Validate,(req,res)=>{
 		const user = req.body
 		console.log(user)
 		const maxId = list.reduce((max, user) => {
