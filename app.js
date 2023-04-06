@@ -1,12 +1,13 @@
 const express = require('express')
 const app = express()
-const router = require('./apiRouter')
+const useRouter = require('./router/useRouter')
 const port = 3000
 
 
 
-app.use('/user',router)
+app.use('/user',useRouter)
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
   })
+
 
