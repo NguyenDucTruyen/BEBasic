@@ -1,18 +1,42 @@
 const express = require('express')
 const router = express.Router()
 
-var bodyParser = require('body-parser') 
+let maxId = 0;
 
-router.use(bodyParser.urlencoded({ extended: false })) 		// parse application/x-www-form-urlencoded
-router.use(bodyParser.json())							// parse application/json
 
+function nameValidate(name) {
+	const pattern = /^[a-zA-ZÀ-ỹạẠảẢấẤầẦẩẨẫẪậẬắẮằẰẳẲẵẴặẶéÉèÈẻẺẽẼẹẸêÊếẾềỀểỂễỄệỆíÍìÌỉỈĩĨ//ịỊóÓòÒỏỎõÕọỌôÔốỐồỒổỔỗỖộỘơƠớỚờỜởỞỡỠợỢúÚùÙủỦũŨụỤưỨỨừỪửỬữỮựỰýÝỳỲỷỶỹỸ\s]+$/;
+	return pattern.test(name); // Trả về true/false
+  }
+  function fullNameValidate(name) {
+	if (!name || name.length < 2 || name.length > 50) {
+	  	return false 		// Độ dài tên có vấn đề
+	}  
+	else if (!nameValidate(name)) {
+	  	return false 		// "Tên không được chứa ký tự đặc biệt hoặc số!";
+	}
+	return true;
+  }
+  
 function Validate(req,res,next){
-	if(typeof req.body.fullname === 'string' && req.body.gender !='True' && req.body.gender !='False' && req.body.age > 0){
+	if(fullNameValidate(req.body.fullname) && req.body.gender !='True' && req.body.gender !='False' && req.body.age > 0 && req.body.age <120){
+		
 		next()
 	}
 	else{
-		res.status(204).send("Không thành công+")
+		
+		res.status(204).send("Không thành công")
 	}
+}
+function getMaxID(array){
+	maxId = array.reduce((max, user) => {
+	   if (user.id > max) {
+		 return user.id;
+	   } else {
+		 return max;
+	   }
+	 }, maxId);
+	 return maxId
 }
 
 let list=[
@@ -29,6 +53,7 @@ let list=[
 		"age": 15
 	}
 ]
+
 //Get methods
 router.get('/', (req, res) => {return res.send(list)})
 
@@ -63,15 +88,8 @@ router.put('/:id',Validate,(req,res)=>{
 // Post methods
 	router.post('/',Validate,(req,res)=>{
 		const user = req.body
-		console.log(user)
-		const maxId = list.reduce((max, user) => {
-			if (user.id > max) {
-			  return user.id;
-			} else {
-			  return max;
-			}
-		  }, 0);
-		user.id =maxId+1
+		
+		user.id =getMaxID(list)+1
 		list.push(user)
 		res.status(201).send(user)
 		
