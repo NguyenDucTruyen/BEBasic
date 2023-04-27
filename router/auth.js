@@ -1,58 +1,62 @@
 const express = require('express')
 const router = express.Router()
 const connection = require('../database/connection')
+const query = require('../database/query')
+
+const insert ="insert into user(username,password,name,age,gender,email) values(?,?,?,?,?,?)"
 let maxId = 0;
 
 
-function nameValidate(name) {
-	const pattern = /^[a-zA-ZÀ-ỹạẠảẢấẤầẦẩẨẫẪậẬắẮằẰẳẲẵẴặẶéÉèÈẻẺẽẼẹẸêÊếẾềỀểỂễỄệỆíÍìÌỉỈĩĨ//ịỊóÓòÒỏỎõÕọỌôÔốỐồỒổỔỗỖộỘơƠớỚờỜởỞỡỠợỢúÚùÙủỦũŨụỤưỨỨừỪửỬữỮựỰýÝỳỲỷỶỹỸ\s]+$/;
-	return pattern.test(name); // Trả về true/false
-  }
+
   function fullNameValidate(name) {
+	const pattern = /^[a-zA-ZÀ-ỹạẠảẢấẤầẦẩẨẫẪậẬắẮằẰẳẲẵẴặẶéÉèÈẻẺẽẼẹẸêÊếẾềỀểỂễỄệỆíÍìÌỉỈĩĨ//ịỊóÓòÒỏỎõÕọỌôÔốỐồỒổỔỗỖộỘơƠớỚờỜởỞỡỠợỢúÚùÙủỦũŨụỤưỨỨừỪửỬữỮựỰýÝỳỲỷỶỹỸ\s]+$/;
 	if (!name || name.length < 2 || name.length > 50) {
 	  	return false 		// Độ dài tên có vấn đề
-	}  
-	else if (!nameValidate(name)) {
-	  	return false 		// "Tên không được chứa ký tự đặc biệt hoặc số!";
+	}
+	else if(!pattern.test(name)){
+		return false;
 	}
 	return true;
   }
-  
+  function validateEmail(email) {
+	const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	return re.test(email);
+  }
 function Validate(req,res,next){
-	if(fullNameValidate(req.body.fullname) && req.body.gender !='True' && req.body.gender !='False' && req.body.age > 0 && req.body.age <120){
-		
-		next()
-	}
-	else{
-		
-		res.status(204).send("Không thành công")
-	}
-}
-function getMaxID(array){
-	maxId = array.reduce((max, user) => {
-	   if (user.id > max) {
-		 return user.id;
-	   } else {
-		 return max;
-	   }
-	 }, maxId);
-	 return maxId
-}
 
-let list=[
-	{
-		"id": 1,
-		"fullname": "Nguyen Huy Tuong",
-		"gender": true,
-		"age": 18
-	},
-	{
-		"id": 2,
-		"fullname": "Nguyen Thi Tuong",
-		"gender": false,
-		"age": 15
+	if(!fullNameValidate(req.body.username)){
+		res.status(204).send("Tên không hợp lệ");
 	}
-]
+	else if(req.body.password != req.body.passwordagain){
+		res.status(204).send("Mật khẩu nhập lại không đúng");
+	}
+	else if(req.body.gender !='1' && req.body.gender !='0'){
+		res.status(204).send("Giới tính hợp lệ")
+	}
+	else if(req.body.age < 0 || req.body.age >120)
+	{
+		res.status(204).send("Độ tuổi không hợp lệ")
+	}
+	else if(!fullNameValidate(req.body.name)){
+		res.status(204).send("Tên không hợp lệ");
+	}
+	else if(!validateEmail(req.body.email)){
+		res.status(204).send("Email không hợp lệ");
+	};
+
+	next();
+	
+}
+// Register user
+router.post('/register',Validate,async (req,res)=>{
+	const user = req.body;
+	await query.create({
+		db:connection,
+		query:insert,
+		params:[user.username,user.password,user.name,user.age,user.gender,user.email]
+	});
+	
+})
 
 //Get methods
 router.get('/', (req, res) => {
@@ -101,7 +105,7 @@ router.put('/:id',Validate,(req,res)=>{
 		connection.query('insert into user(fullname,gender,age)'+
 		'values(?,?,?)',[user.fullname,Boolean(user.gender),parseInt(user.age)],(err, rs)=>{
 			console.log(err)
-})
+		})
 		res.status(201).send(user)
 		
 	})
@@ -126,5 +130,7 @@ router.put('/:id',Validate,(req,res)=>{
 		
 		
 	})
+
+	// router.post('/register',)
 
     module.exports = router

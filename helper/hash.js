@@ -1,0 +1,3 @@
+function hashPassword(password){
+    
+}

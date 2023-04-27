@@ -1,12 +1,21 @@
 const { json } = require('body-parser');
 const express = require('express');
 const app=express();
+
 const jsonwebtoken = require('jsonwebtoken');
+const crypto = require('crypto')
 
 let bodyParser = require('body-parser') 
 app.use(bodyParser.urlencoded({ extended: false })) 		// parse application/x-www-form-urlencoded
 app.use(bodyParser.json())	
-const secret = 'Truyen-Truyen'
+
+// const secret = 'Truyen-Truyen'
+
+const {privateKey,publicKey}=crypto.generateKeyPairSync('rsa',{
+    modulusLength: 2048,
+});
+console.log('Private key nekkk:',privateKey)
+
 const dbs=[
     {
         username: 'thinh',
@@ -45,8 +54,8 @@ app.post('/login',function(req,res,next){
             username: user.username,
             email: user.email,
             age: user.age,
-        },secret,{
-            algorithm: 'HS256',
+        },privateKey,{
+            algorithm: 'RS256',
             expiresIn:'2h',
         });
         return res.status(200).json({
@@ -67,7 +76,7 @@ app.get('/balance',(req,res,next)=>{
     
     // verify token
     try{
-        const isTokenValid=jsonwebtoken.verify(userToken,secret);
+        const isTokenValid=jsonwebtoken.verify(userToken,publicKey);
         //Authorization success
         if(isTokenValid.username==username){
             const user = dbs.find(x=>x.username===isTokenValid.username);
