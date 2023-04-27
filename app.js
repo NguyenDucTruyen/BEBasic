@@ -2,7 +2,7 @@ const express = require('express')
 const app = express()
 const port = 3000
 
-const useRouter = require('./router/auth')
+const authRoute = require('./router/auth')
 
 var bodyParser = require('body-parser') 
 app.use(bodyParser.urlencoded({ extended: false })) 		// parse application/x-www-form-urlencoded
@@ -17,7 +17,7 @@ app.use(bodyParser.json())	                            // parse application/json
     ---> dùng app.use(......) để tất cả route đều có thể sử dụng
 */
 
-app.use('/user',useRouter)
+app.use('/auth',authRoute)
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
   })
