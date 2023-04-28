@@ -10,7 +10,7 @@ const validateUpdateRequest = (req,res,next)=>{
     else if(user.age<0 || user.age>120){
         res.status(400).json({message:'Age invalid'})
     }
-    else if(user.gender!='1' || user.gender!='0'){
+    else if(user.gender != 1 && user.gender != 0){
         res.status(400).json({message:'Gender invalid'})
     }
     else{

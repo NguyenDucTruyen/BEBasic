@@ -8,7 +8,7 @@ const query = require('../database/query');
 const validateUpdateRequest=validate.validateUpdateRequest
 
 
-route.put('/:id',async (req,res)=>{
+route.put('/:id',validateUpdateRequest,async (req,res)=>{
     let user={
         name: req.body.name,
         age: req.body.age,
