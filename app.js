@@ -3,6 +3,7 @@ const app = express()
 const port = 3000
 
 const authRoute = require('./router/auth')
+const userRoute = require('./router/user');
 
 var bodyParser = require('body-parser') 
 app.use(bodyParser.urlencoded({ extended: false })) 		// parse application/x-www-form-urlencoded
@@ -18,6 +19,10 @@ app.use(bodyParser.json())	                            // parse application/json
 */
 
 app.use('/auth',authRoute)
+app.use('/users',userRoute)
+
+
+
 app.listen(port, () => {
     console.log(`Example app listening on port ${port}`)
   })

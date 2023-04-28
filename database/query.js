@@ -22,9 +22,14 @@ const create = async({db,query,params})=>{
 	const result = await excuteQuery({db,query,params});
 	return result.params
 }
+const update = async({db,query,params})=>{
+	const result = await excuteQuery({db,query,params});
+	return result.params;
+}
 
 module.exports ={
     excuteQuery,
     getOne,
-    create
+    create,
+	update
 }
