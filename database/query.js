@@ -27,6 +27,7 @@ const update = async({db,query,params})=>{
 	return result.params;
 }
 
+
 module.exports ={
     excuteQuery,
     getOne,
