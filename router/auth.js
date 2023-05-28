@@ -19,6 +19,7 @@ const {
 const { hashPassword,
 	comparePassword } = require('../helper/hash');
 const e = require('express')
+const { route } = require('./user')
 // Register user
 router.post('/register', validateRegisterRequest, async (req, res) => {
 	let user = {};
@@ -50,8 +51,17 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 
 });
 
-
 // Login user
+router.get('/test',async (req,res)=>{
+	let username = req.body.username
+	const user = await query.getOne({
+		db: connection,
+		query: connection.select().from('user').where('username', username).toQuery(),
+		params: []
+	  });
+	  let password = user.username
+	res.status(200).json({message:user})
+})
 router.post('/login', validateLoginRequest, async (req, res) => {
 
 	let user = {};
@@ -59,8 +69,7 @@ router.post('/login', validateLoginRequest, async (req, res) => {
 	user.password = req.body.password;
 	const isUserExisted = await query.getOne({
 		db: connection,
-		query: 'select * from user where username =?',
-		params: user.username
+		query: connection.select().from('user').where('username',user.username).toString()
 	});
 	if (isUserExisted) {
 		const checkPassword = comparePassword(isUserExisted.password, isUserExisted.salt, user.password)
