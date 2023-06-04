@@ -10,17 +10,19 @@ const crypto = require('crypto')
 const insert = "insert into user(username,password,salt,name,age,gender,email) values(?,?,?,?,?,?,?)"
 
 //validate
-const {
-	validateLoginRequest,
-	validateRegisterRequest,
-	validateUpdateRequest
-} = validate
+const 
+	validateLoginRequest = validate.validateLoginRequest,
+	validateRegisterRequest = validate.validateRegisterRequest,
+	validateUpdateRequest = validate.validateUpdateRequest,
+	checkAdmin = validate.checkAdmin
 
 const { hashPassword,
 	comparePassword } = require('../helper/hash');
 const e = require('express')
 const { route } = require('./user')
-// Register user
+const { json } = require('body-parser')
+
+// Register user - not admin
 router.post('/register', validateRegisterRequest, async (req, res) => {
 	let user = {};
 	user.username = req.body.username;
@@ -49,7 +51,8 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 				name: user.name,
 				age: user.age,
 				gender:user.gender,
-				email:user.email
+				email:user.email,
+
 			}).into('user').toQuery()
 		});
 		res.status(201).json(user);
@@ -77,6 +80,7 @@ router.post('/login', validateLoginRequest, async (req, res) => {
 				gender: isUserExisted.gender,
 				email: isUserExisted.email,
 				age: isUserExisted.age,
+				isAdmin: isUserExisted.isAdmin
 			}, process.env.JWT_SECRET, {
 				algorithm: 'HS256',
 				expiresIn: '2h',

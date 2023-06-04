@@ -17,7 +17,13 @@ const getOne = async ({ db, query }) => {
 	}
 	return null;
 };
-
+const getAll = async({db,query})=>{
+	const records = await excuteQuery({ db, query });
+	if (records.length > 0) {
+		return records;
+	}
+	return null;
+}
 const create = async ({ db, query }) => {
 	const result = await excuteQuery({ db, query });
 	return result
@@ -31,6 +37,7 @@ const update = async ({ db, query }) => {
 module.exports = {
 	excuteQuery,
 	getOne,
+	getAll,
 	create,
 	update
 }

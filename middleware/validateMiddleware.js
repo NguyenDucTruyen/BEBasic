@@ -1,3 +1,4 @@
+const jsonwebtoken = require('jsonwebtoken')
 const validateUpdateRequest = (req,res,next)=>{
     let user={
         name: req.body.name,
@@ -15,6 +16,18 @@ const validateUpdateRequest = (req,res,next)=>{
     }
     else{
         next();
+    }
+}
+const checkAdmin = (req,res,next) => {
+    const jwt = req.headers.authorization.substring(7);
+    const admin = jsonwebtoken.verify(jwt,process.env.JWT_SECRET)
+    if(admin.isAdmin == 1){
+        const adminID = admin.id;
+        req.adminID = adminID;
+        next();
+    }
+    else{
+        res.status(400).json({message:'This is not admin'})
     }
 }
 const validateRegisterRequest = (req, res, next) => {
@@ -63,9 +76,21 @@ const validateLoginRequest=(req,res,next)=>{
 		next();
 	}
 }
+const validateSearch =(req,res,next)=>{
+    let pageNumber = req.body.pageNumber;
+    let pageSize = req.body.pageSize;
+    if(pageNumber<=0)
+        res.status(400).json({message:'Page number have to >0'})
+    else if(pageSize<=0)
+        res.status(400).json({message:'Pagesize have to >0'})
+    else
+        next();
+}
 
 module.exports={
     validateLoginRequest,
     validateRegisterRequest,
-    validateUpdateRequest
+    validateUpdateRequest,
+    checkAdmin,
+    validateSearch
 }
