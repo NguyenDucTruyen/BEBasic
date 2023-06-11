@@ -7,8 +7,6 @@ const validate = require('../middleware/validateMiddleware')
 const { mailService } = require('../services/mail.service')
 const crypto = require('crypto')
 
-const insert = "insert into user(username,password,salt,name,age,gender,email) values(?,?,?,?,?,?,?)"
-
 //validate
 const 
 	validateLoginRequest = validate.validateLoginRequest,
