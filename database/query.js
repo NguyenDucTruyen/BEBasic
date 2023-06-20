@@ -1,8 +1,9 @@
 
-const excuteQuery = ({ db, query }) => {
+const excuteQuery =  ({ db, query }) => {
 	return new Promise((resolve, reject) => {
 		db.raw(query)
 			.then((rows) => {
+				// console.log(rows,'-----------------------------');
 				resolve(rows[0]);
 			})
 			.catch((error) => {

@@ -1,34 +1,45 @@
 const jsonwebtoken = require('jsonwebtoken')
-const validateUpdateRequest = (req,res,next)=>{
-    let user={
+const validateUpdateRequest = (req, res, next) => {
+    let user = {
         name: req.body.name,
         age: req.body.age,
         gender: req.body.gender
     };
-    if( user.name.length < 2){
-        res.status(400).json({message:'Name invalid'})
+    if (user.name.length < 2) {
+        res.status(400).json({ message: 'Name invalid' })
     }
-    else if(user.age<0 || user.age>120){
-        res.status(400).json({message:'Age invalid'})
+    else if (user.age < 0 || user.age > 120) {
+        res.status(400).json({ message: 'Age invalid' })
     }
-    else if(user.gender != 1 && user.gender != 0){
-        res.status(400).json({message:'Gender invalid'})
+    else if (user.gender != 1 && user.gender != 0) {
+        res.status(400).json({ message: 'Gender invalid' })
     }
-    else{
+    else {
         next();
     }
 }
-const checkAdmin = (req,res,next) => {
+const checkAdmin = (req, res, next) => {
     const jwt = req.headers.authorization.substring(7);
-    const admin = jsonwebtoken.verify(jwt,process.env.JWT_SECRET)
-    if(admin.isAdmin == 1){
-        const adminID = admin.id;
-        req.adminID = adminID;
+    jsonwebtoken.verify(jwt, process.env.JWT_SECRET, (err, admin) => {
+        if (err) {
+            res.status(403).json({ message: "Token is not valid!" });
+        }
+        else if (admin.isAdmin == 1) {
+            const adminID = admin.id;
+            req.adminID = adminID;
+            next();
+        }
+    })
+}
+const checkUser = (req, res, next) => {
+    const jwt = req.headers.authorization.substring(7);
+    jsonwebtoken.verify(jwt, process.env.JWT_SECRET, async (err, user) => {
+        if (err)
+            return res.status(403).json({ message: "Token is not valid!" });
+        req.user = user;
         next();
-    }
-    else{
-        res.status(400).json({message:'This is not admin'})
-    }
+    })
+
 }
 const validateRegisterRequest = (req, res, next) => {
     user = {
@@ -57,40 +68,40 @@ const validateRegisterRequest = (req, res, next) => {
         res.status(400).json({ message: 'name not valid' })
     }
     else {
-        next()	;
+        next();
     }
 
 }
-const validateLoginRequest=(req,res,next)=>{
-	let user={
-	username:req.body.username,
-	password:req.body.password,
-	};
-	if (user.username.length <= 3) {
+const validateLoginRequest = (req, res, next) => {
+    let user = {
+        username: req.body.username,
+        password: req.body.password,
+    };
+    if (user.username.length <= 3) {
         res.status(400).json({ message: 'username not valid' })
     }
-	else if(user.password.length <= 3){
-		res.status(400).json({message: 'password not valid'})
-	}
-	else{
-		next();
-	}
+    else if (user.password.length <= 3) {
+        res.status(400).json({ message: 'password not valid' })
+    }
+    else {
+        next();
+    }
 }
-const validateSearch =(req,res,next)=>{
+const validateSearch = (req, res, next) => {
     let pageNumber = req.body.pageNumber;
     let pageSize = req.body.pageSize;
-    if(pageNumber<=0)
-        res.status(400).json({message:'Page number have to >0'})
-    else if(pageSize<=0)
-        res.status(400).json({message:'Pagesize have to >0'})
+    if (pageNumber <= 0)
+        res.status(400).json({ message: 'Page number have to >0' })
+    else if (pageSize <= 0)
+        res.status(400).json({ message: 'Pagesize have to >0' })
     else
         next();
 }
-
-module.exports={
+module.exports = {
     validateLoginRequest,
     validateRegisterRequest,
     validateUpdateRequest,
     checkAdmin,
+    checkUser,
     validateSearch
 }
