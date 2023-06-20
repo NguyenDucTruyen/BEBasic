@@ -7,19 +7,20 @@ const validate = require('../middleware/validateMiddleware')
 const { mailService } = require('../services/mail.service')
 const crypto = require('crypto')
 
-const insert = "insert into user(username,password,salt,name,age,gender,email) values(?,?,?,?,?,?,?)"
-
-//End validate
-const {
-	validateLoginRequest,
-	validateRegisterRequest,
-	validateUpdateRequest
-} = validate
+//validate
+const 
+	validateLoginRequest = validate.validateLoginRequest,
+	validateRegisterRequest = validate.validateRegisterRequest,
+	validateUpdateRequest = validate.validateUpdateRequest,
+	checkAdmin = validate.checkAdmin
 
 const { hashPassword,
 	comparePassword } = require('../helper/hash');
 const e = require('express')
-// Register user
+const { route } = require('./user')
+const { json } = require('body-parser')
+
+// Register user - not admin
 router.post('/register', validateRegisterRequest, async (req, res) => {
 	let user = {};
 	user.username = req.body.username;
@@ -29,11 +30,10 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 	user.gender = req.body.gender;
 	const userExisted = await query.getOne({
 		db: connection,
-		query: 'select * from user where username =?',
-		params: user.username
+		query: connection.select().from('user').where('username',user.username).toQuery()
 	});
 	if (userExisted) {
-		res.status(400).json("Existed user");
+		res.status(400).json({message:userExisted});
 	}
 	else {
 		const passWord_salt = hashPassword(req.body.password);
@@ -42,14 +42,21 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 
 		await query.create({
 			db: connection,
-			query: insert,
-			params: [user.username, user.password, user.salt, user.name, user.age, user.gender, user.email]
+			query: connection.insert({
+				username:user.username,
+				password: user.password,
+				salt: user.salt,
+				name: user.name,
+				age: user.age,
+				gender:user.gender,
+				email:user.email,
+
+			}).into('user').toQuery()
 		});
 		res.status(201).json(user);
 	}
 
 });
-
 
 // Login user
 router.post('/login', validateLoginRequest, async (req, res) => {
@@ -59,8 +66,7 @@ router.post('/login', validateLoginRequest, async (req, res) => {
 	user.password = req.body.password;
 	const isUserExisted = await query.getOne({
 		db: connection,
-		query: 'select * from user where username =?',
-		params: user.username
+		query: connection.select().from('user').where('username',user.username).toQuery()
 	});
 	if (isUserExisted) {
 		const checkPassword = comparePassword(isUserExisted.password, isUserExisted.salt, user.password)
@@ -72,6 +78,7 @@ router.post('/login', validateLoginRequest, async (req, res) => {
 				gender: isUserExisted.gender,
 				email: isUserExisted.email,
 				age: isUserExisted.age,
+				isAdmin: isUserExisted.isAdmin
 			}, process.env.JWT_SECRET, {
 				algorithm: 'HS256',
 				expiresIn: '2h',
@@ -112,8 +119,7 @@ router.post('/forgot-password', async function (req, res) {
 	email = req.body.email;
 	const userExisted = await query.getOne({
 		db: connection,
-		query: 'select * from user where email =?',
-		params: email
+		query: connection.select().from('user').where('email',email).toQuery()
 	})
 	if (!userExisted) {
 		res.status(400).json({ message: 'User not exist' })
@@ -123,8 +129,10 @@ router.post('/forgot-password', async function (req, res) {
 		const passwordResetExpiration = new Date(Date.now() + 10 * 60 * 1000)
 		await query.update({
 			db: connection,
-			query: 'update user set passwordResetExpiration=?,passwordResetToken=? where email =?',
-			params: [passwordResetExpiration, passwordResetToken, email]
+			query: connection.update({
+				passwordResetExpiration:passwordResetExpiration,
+				passwordResetToken:passwordResetToken
+			}).from('user').where('email',email).toQuery()
 		})
 		try {
 
@@ -147,24 +155,26 @@ router.post('/reset-password', async function(req,res){
 	let now = new Date(Date.now());
 	const user = await query.getOne({
 		db: connection,
-		query: 'select * from user where email=? and passwordResetToken =? and passwordResetExpiration >= ?',
-		params: [email,passwordResetToken,now]
+		query: connection.select().from('user').where('email',email).andWhere('passwordResetToken',passwordResetToken)
+		.andWhere('passwordResetExpiration','>=',now).toQuery()
 	})
 	if(!user){
 		res.status(400).json({message:'No infomation'})
-
 	}
 	else{
 		const passWord_salt = hashPassword(newPassword);
 		let password = passWord_salt.hashedPassword;
 		let salt = passWord_salt.salt;
-		console.log(password);
 		try {
 			await query.update({
 				db: connection,
-				query: 'update user set password =?,salt =?,passwordResetToken =null, passwordResetExpiration=null where email=?  ',
+				query: connection.update({
+					password :password,
+					salt :salt,
+					passwordResetToken :null,
+					passwordResetExpiration:null
+				}).from('user').where('email',email).toQuery()
 				
-				params:[password,salt,email]
 			})
 			res.status(200).json({message:'Reset Password successfully'})
 		} catch (error) {
