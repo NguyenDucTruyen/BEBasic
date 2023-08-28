@@ -3,8 +3,9 @@ const db = require('../database/connection');
 
 const cacheService = {
   async setOneUser(userId) {
+    let userCache = expireCache.namespace('userCache');
     const rolePermissions = await db('role AS r')
-    .select('r.RoleID AS role', 'p.PermissionID AS permission')
+    .select('r.Rolename AS role', 'p.PermissionName AS permission')
     .join('user_role AS ur', 'r.RoleID', 'ur.RoleId')
     .leftJoin('role_permission AS rp', 'r.RoleID', 'rp.RoleId')
     .leftJoin('permission AS p', 'rp.permissionId', 'p.PermissionID')
@@ -14,7 +15,8 @@ const cacheService = {
     const permissions = Array.from(
       new Set(rolePermissions.filter((item) => item.permission != null).map((item) => item.permission))
     );
-    const userCache = expireCache.namespace('userCache');
+    console.log(roles)
+    console.log(permissions)
     userCache(`${userId}`, { roles, permissions }, process.env.JWT_EXPIRE_TIME);
   },
   async getOneUser(userId) {
@@ -38,6 +40,5 @@ const cacheService = {
 
 Object.freeze(cacheService);
 
-module.exports = {
-  cacheService,
-};
+module.exports = 
+  cacheService;

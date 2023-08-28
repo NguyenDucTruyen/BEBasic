@@ -6,7 +6,9 @@ const jsonwebtoken = require('jsonwebtoken')
 const validate = require('../middleware/validateMiddleware')
 const { mailService } = require('../services/mail.service')
 const crypto = require('crypto')
-
+const {canAccessBy} = require('../middleware/verifyRole')
+const permissionCode = require('../helper/allowPermission')
+const cacheService = require('../services/cache.service')
 //validate
 const 
 	validateLoginRequest = validate.validateLoginRequest,
@@ -28,6 +30,8 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 	user.age = req.body.age;
 	user.email = req.body.email;
 	user.gender = req.body.gender;
+	user.role = req.body.role
+	const timeCreate = new Date(Date.now())
 	const userExisted = await query.getOne({
 		db: connection,
 		query: connection.select().from('user').where('username',user.username).toQuery()
@@ -40,7 +44,7 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 		user.password = passWord_salt.hashedPassword;
 		user.salt = passWord_salt.salt;
 
-		await query.create({
+		const newUser = await query.create({
 			db: connection,
 			query: connection.insert({
 				username:user.username,
@@ -50,14 +54,28 @@ router.post('/register', validateRegisterRequest, async (req, res) => {
 				age: user.age,
 				gender:user.gender,
 				email:user.email,
+				createdAt: timeCreate
 
 			}).into('user').toQuery()
 		});
+		await query.create({
+			db: connection,
+			query: connection.insert({
+				UserID: newUser.insertId,
+				RoleID: 1
+
+			}).into('user_role').toQuery()
+		})
 		res.status(201).json(user);
 	}
 
 });
-
+//test authorization
+router.get('/authorization-test', canAccessBy(permissionCode.CreateUser, permissionCode.UpdatePoll), async function (req, res) {
+	return res.status(200).json({
+	  message: 'test authorization successfully',
+	});
+  });
 // Login user
 router.post('/login', validateLoginRequest, async (req, res) => {
 
@@ -71,6 +89,8 @@ router.post('/login', validateLoginRequest, async (req, res) => {
 	if (isUserExisted) {
 		const checkPassword = comparePassword(isUserExisted.password, isUserExisted.salt, user.password)
 		if (checkPassword) {
+			//Set vào cache
+		await cacheService.setOneUser( isUserExisted.id);
 			const jwt = jsonwebtoken.sign({
 				id: isUserExisted.id,
 				username: isUserExisted.username,
@@ -81,11 +101,12 @@ router.post('/login', validateLoginRequest, async (req, res) => {
 				isAdmin: isUserExisted.isAdmin
 			}, process.env.JWT_SECRET, {
 				algorithm: 'HS256',
-				expiresIn: '2h',
+				expiresIn: '24h',
 			});
 			return res.status(200).json({
 				data: jwt,
 				message: 'Login success',
+				userid:isUserExisted.id
 			});
 		}
 		else {
