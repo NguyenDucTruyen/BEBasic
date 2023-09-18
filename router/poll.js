@@ -309,7 +309,6 @@ route.post('/change-voting', [checkUser,canAccessBy(permissionCode.SubmitUnsubmi
         else {
              //Con neu nguoi dung chua co submit nao trong DB
             //thi chi can filter cac yeu cau submit, sau do insert
-            console.log(voteList);
             voteList.forEach(e => {
                 if (e.vote == true)
                     listInsert = [...listInsert, {
