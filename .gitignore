@@ -1,3 +1,4 @@
 node_modules
 .env
 docker/mysql/data/mysql.sock
+docker
