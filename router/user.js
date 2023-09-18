@@ -8,10 +8,12 @@ const query = require('../database/query');
 const validateUpdateRequest=validate.validateUpdateRequest
 const validateSearchRequest = validate.validateSearch
 const checkAdmin = validate.checkAdmin
+const {canAccessBy} = require('../middleware/verifyRole')
+const permissionCode = require('../helper/allowPermission')
 const { hashPassword,
 	comparePassword } = require('../helper/hash');
 //Pagination 
-route.get('/searchPanigation',validateSearchRequest,async (req,res)=>{
+route.get('/searchPanigation',[validateSearchRequest,canAccessBy(permissionCode.ReadUser)],async (req,res)=>{
     let name = req.body.name
     let pageNumber = parseInt(req.body.pageNumber);
     let pageSize = parseInt(req.body.pageSize);
@@ -34,9 +36,55 @@ route.get('/searchPanigation',validateSearchRequest,async (req,res)=>{
         res.status(200).json({message: users})
     }
 })
+//get list user 
+route.get('/',canAccessBy(permissionCode.ReadUser), async (req,res)=>{
+    const userExisted = await query.getAll({
+		db: connection,
+		query: connection('user').select().toQuery()
+	});
+    let users =[]
+    if(!userExisted){
+        res.status(400).json({message: 'No one'})
+    }
+    else{
+        for(let i =0;i<userExisted.length;i++)
+        users[i]={
+            id: userExisted[i].id,
+            name: userExisted[i].name,
+            username: userExisted[i].username,
+            gender: userExisted[i].gender,
+            email: userExisted[i].email,
+            age: userExisted[i].age,
+            createdAt: userExisted[i].createdAt
+        }
+        res.status(200).json({message: users})
+    }
+})
+
+//get User by Id
+route.get('/:id',canAccessBy(permissionCode.ReadUser),async function (req,res){
+	const id = parseInt(req.params.id); // chuyển đổi id thành kiểu số nguyên
+	const userExisted = await query.getOne({
+		db: connection,
+		query: connection('user').select().where('id', id).toQuery()
+	});
+    if(!userExisted){
+        res.status(400).json({message: 'No one'})
+    }
+    const user ={
+        id: userExisted.id,
+        username: userExisted.username,
+        name: userExisted.name,
+        gender: userExisted.gender,
+        email: userExisted.email,
+        age: userExisted.age,
+    }
+    res.status(200).json({message: user})
+    
+})
 
 //Update users by id
-route.put('/:id',[checkAdmin,validateUpdateRequest],async (req,res)=>{
+route.put('/:id',[validateUpdateRequest,canAccessBy(permissionCode.UpdateUser)],async (req,res)=>{
     let user={
         name: req.body.name,
         age: req.body.age,
@@ -64,7 +112,7 @@ route.put('/:id',[checkAdmin,validateUpdateRequest],async (req,res)=>{
 });
 
 //Delete user
-route.delete('/:id',checkAdmin, async (req,res)=>{
+route.delete('/:id',[canAccessBy(permissionCode.DeleteUser)], async (req,res)=>{
     
     const jwt = req.headers.authorization.substring(7);
     const userExisted = jsonwebtoken.verify(jwt,process.env.JWT_SECRET);

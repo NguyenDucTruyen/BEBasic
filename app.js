@@ -1,6 +1,6 @@
 const express = require('express')
+const cors = require('cors');
 const app = express()
-const port = 3000
 
 const authRoute = require('./router/auth')
 const userRoute = require('./router/user');
@@ -17,14 +17,14 @@ app.use(bodyParser.json())	                            // parse application/json
     thì các route đó k thể sử dụng body-parser và nếu muốn dùng thì sẽ phải khai báo lại riêng cho các route đó
     ---> dùng app.use(......) để tất cả route đều có thể sử dụng
 */
-
+app.use(cors());
 app.use('/auth',authRoute)
 app.use('/users',userRoute)
 app.use('/poll',pollRoute)
 
 
-app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`)
+app.listen(process.env.PORT, () => {
+    console.log(`Example app listening on port ${process.env.PORT}`)
   })
 
 

@@ -6,6 +6,8 @@ const route = express.Router();
 const validate = require('../middleware/validateMiddleware');
 const validatePoll = require('../middleware/pollMidddleware');
 const e = require('express');
+const permissionCode = require('../helper/allowPermission')
+const {canAccessBy} = require('../middleware/verifyRole')
 
 const checkAuthor = validatePoll.checkAuthor
 const checkUser = validate.checkUser
@@ -13,7 +15,7 @@ const checkAdmin = validate.checkAdmin
 
 
 //Create Poll
-route.post('/create-poll', checkUser, async (req, res) => {
+route.post('/create-poll', [checkUser,canAccessBy(permissionCode.CreatePoll)], async (req, res) => {
 
     let pollObject = req.body;
     let poll = pollObject.poll;
@@ -47,7 +49,7 @@ route.post('/create-poll', checkUser, async (req, res) => {
 
 //Update Poll
 
-route.put('/update-poll/:idPoll', [checkUser, checkAuthor], async (req, res) => {
+route.put('/update-poll/:idPoll', [checkUser, checkAuthor,canAccessBy(permissionCode.UpdatePoll)], async (req, res) => {
     let pollTemp = req.body;
     pollTemp.id = req.params.idPoll;
     //Update name, question trong DB
@@ -63,7 +65,7 @@ route.put('/update-poll/:idPoll', [checkUser, checkAuthor], async (req, res) => 
 })
 
 //Add options - insert option into table options
-route.post('/update-poll/add-options/:idPoll', [checkUser, checkAuthor], async (req, res) => {
+route.post('/update-poll/add-options/:idPoll', [checkUser, checkAuthor,canAccessBy(permissionCode.UpdatePoll)], async (req, res) => {
     //lay info tu body
     const idPoll = req.params.idPoll;
     let options = req.body;
@@ -88,7 +90,7 @@ route.post('/update-poll/add-options/:idPoll', [checkUser, checkAuthor], async (
         -> update
             nguoc lai: thong bao : Option nay khong thuoc Poll co id la idPoll
 */
-route.put('/update-poll/option-idpoll/:idPoll', [checkUser, checkAuthor], async (req, res) => {
+route.put('/update-poll/option-idpoll/:idPoll', [checkUser, checkAuthor,canAccessBy(permissionCode.UpdatePoll)], async (req, res) => {
     const option = {
         title: req.body.title
     }
@@ -119,7 +121,7 @@ route.put('/update-poll/option-idpoll/:idPoll', [checkUser, checkAuthor], async 
 })
 
 // Remove Option -tuong tu update - kiem tra xem Poll request co chua option muuon xoa hay khong
-route.delete('/update-poll/delete-option-idpoll/:idPoll', [checkUser, checkAuthor], async (req, res) => {
+route.delete('/update-poll/delete-option-idpoll/:idPoll', [checkUser, checkAuthor,canAccessBy(permissionCode.DeletePoll)], async (req, res) => {
 
     let optionFromDB = await query.getOne({
         db: db,
@@ -169,7 +171,18 @@ route.delete('/update-poll/delete-option-idpoll/:idPoll', [checkUser, checkAutho
     ]
 }*/
 
-route.get("/get-poll/:idPoll", checkUser, async (req, res) => {
+route.get("/get-poll", [checkUser,canAccessBy(permissionCode.Viewpoll)], async (req, res) => {
+    let pollDetails = {} /** -> Tao object de chua thong tin cua polls */
+    //Lay thong tin cua polls tu table polls
+    let pollFromDB = await query.getAll({
+        db: db,
+        query: db('polls').select().toQuery()
+    });
+    
+    return res.status(200).json(pollFromDB)
+    
+})
+route.get("/get-poll/:idPoll", [checkUser,canAccessBy(permissionCode.Viewpoll)], async (req, res) => {
     let pollId = req.params.idPoll;
     let pollDetails = {} /** -> Tao object de chua thong tin cua polls */
     //Lay thong tin cua polls tu table polls
@@ -223,7 +236,7 @@ route.get("/get-poll/:idPoll", checkUser, async (req, res) => {
 })
 
 // Delete poll
-route.delete('/delete-poll/:idPoll', [checkUser], async (req, res) => {
+route.delete('/delete-poll/:idPoll', [checkUser,checkAuthor,canAccessBy(permissionCode.DeletePoll)], async (req, res) => {
     let idpoll = req.params.idPoll;
     //Lay poll tu table polls de di kiem tra
     //Neu chua co thi bao loi, neu co thi thuc hien xoa
@@ -254,9 +267,10 @@ route.delete('/delete-poll/:idPoll', [checkUser], async (req, res) => {
 })
 
 // Submit & unsubmit options
-route.post('/change-voting', checkUser, async (req, res) => {
+route.post('/change-voting', [checkUser,canAccessBy(permissionCode.SubmitUnsubmit)], async (req, res) => {
     //Lay danh sach voteList tu body
     let voteList = req.body;
+    let userReq=req.user.id;
     if (voteList.length > 0) {
         /*Lay danh cac cac submit cua user 
         (token user dat o authorization -> check user -> tra ve thong qua middleware)*/
@@ -292,17 +306,20 @@ route.post('/change-voting', checkUser, async (req, res) => {
             }
 
         }
-        else 
-            //Con neu nguoi dung chua co submit nao trong DB
+        else {
+             //Con neu nguoi dung chua co submit nao trong DB
             //thi chi can filter cac yeu cau submit, sau do insert
-            listInsert = voteList.forEach(e => {
+            console.log(voteList);
+            voteList.forEach(e => {
                 if (e.vote == true)
                     listInsert = [...listInsert, {
                         optionId: e.optionId,
                         userId: req.user.id
-                    }];
+                    }]; 
             });
-
+            console.log(listInsert);
+        }
+        // console.log(listInsert);
         //Thuc hien cau lenh insert va delete
         if (listInsert.length > 0) {
             await query.create({
