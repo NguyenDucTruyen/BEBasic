@@ -1,0 +1,41 @@
+ services:
+   mysql:
+     image: mysql:8.0
+     container_name: app-sql
+     restart: 'always'
+     environment:
+       MYSQL_ROOT_PASSWORD: 123456
+       MYSQL_DATABASE: database_Login
+       TZ: UTC
+     ports:
+       - 3306:3306
+     volumes:
+       - ./docker/mysql/data:/var/lib/mysql
+     networks:
+       - example-network
+     healthcheck:
+       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+       interval: 30s
+       timeout: 10s
+       retries: 5
+
+   app_server:
+     build: .
+     tty: true
+     container_name: app-api
+     ports:
+       - "3000:3000"
+     volumes:
+       - ./:/var/www
+     depends_on:
+       mysql:
+         condition: service_healthy
+     networks:
+       - example-network
+
+ networks:
+   example-network:
+     driver: bridge
+# docker compose -p sgoup-app up -d
+# có -d là chạy nền else chạy có logs
+ 
